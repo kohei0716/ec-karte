@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EC在庫診断レポート（サンプル）｜ECカルテ</title>
+<style>
+:root{
+  --bg:#fff; --text:#1a1917; --muted:#6b6862; --line:#e4e1db; --soft:#faf9f7;
+  --accent:#1a5f4a; --accent-soft:#eaf3ef;
+  --danger:#9b2c2c; --danger-soft:#fdeeee; --warn:#a4571b; --warn-soft:#fdf3e8;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#f0efec;color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+  line-height:1.85;-webkit-font-smoothing:antialiased;font-size:14.5px}
+.page{max-width:820px;margin:0 auto;background:var(--bg);padding:56px 60px 72px;
+  box-shadow:0 1px 3px rgba(0,0,0,.07)}
+
+.demo{background:#fff4d6;border:1px solid #e0c76a;color:#6b5312;padding:11px 16px;
+  border-radius:7px;font-size:12.5px;margin-bottom:36px;line-height:1.7}
+.demo b{color:#4a3908}
+
+.cover{border-bottom:2px solid var(--text);padding-bottom:26px;margin-bottom:36px}
+.cover .brand{font-size:12px;letter-spacing:.16em;color:var(--accent);font-weight:700;margin-bottom:16px}
+.cover h1{font-size:27px;margin:0 0 10px;letter-spacing:-.01em;line-height:1.4}
+.cover .meta{font-size:13px;color:var(--muted);margin:0}
+
+.summary{background:var(--accent-soft);border-left:4px solid var(--accent);
+  padding:20px 24px;margin:0 0 40px;border-radius:0 8px 8px 0}
+.summary h2{font-size:15px;margin:0 0 10px;color:var(--accent)}
+.summary p{margin:0 0 8px;font-size:14px}
+.summary p:last-child{margin-bottom:0}
+.summary b{background:linear-gradient(transparent 62%,rgba(26,95,74,.18) 62%)}
+
+h2.ch{font-size:19px;margin:44px 0 6px;padding-top:22px;border-top:1px solid var(--line);letter-spacing:-.01em}
+h2.ch .num{color:var(--accent);font-size:13px;display:block;letter-spacing:.1em;margin-bottom:5px;font-weight:700}
+h2.ch:first-of-type{border-top:0;padding-top:0}
+h3{font-size:15.5px;margin:28px 0 8px}
+p{margin:0 0 14px}
+.lead{color:var(--muted);font-size:13.5px;margin:0 0 18px}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--line);
+  border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:20px 0 8px}
+.kpi{background:#fff;padding:14px 16px}
+.kpi .l{font-size:11.5px;color:var(--muted);margin-bottom:3px}
+.kpi .v{font-size:20px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:11px;color:var(--muted)}
+
+table{border-collapse:collapse;width:100%;font-size:13px;margin:14px 0}
+th,td{padding:9px 11px;border-bottom:1px solid var(--line);text-align:left}
+th{background:var(--soft);font-size:11.5px;color:var(--muted);font-weight:600;white-space:nowrap}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.5px}
+th.n{font-family:inherit}
+tbody tr:last-child td{border-bottom:2px solid var(--text)}
+tr.total td{font-weight:700;background:var(--soft);border-bottom:0}
+
+.verdict{display:inline-block;font-size:11.5px;font-weight:700;padding:2px 10px;border-radius:100px;white-space:nowrap}
+.v-go{background:var(--accent-soft);color:var(--accent)}
+.v-keep{background:#eef0f2;color:#4a5259}
+.v-stop{background:var(--danger-soft);color:var(--danger)}
+
+.box{border:1px solid var(--line);border-left-width:4px;border-radius:0 8px 8px 0;
+  padding:16px 20px;margin:16px 0;background:var(--soft)}
+.box.d{border-left-color:var(--danger);background:var(--danger-soft)}
+.box.w{border-left-color:var(--warn);background:var(--warn-soft)}
+.box.a{border-left-color:var(--accent);background:var(--accent-soft)}
+.box h4{margin:0 0 7px;font-size:14.5px}
+.box p{margin:0 0 8px;font-size:13.5px}
+.box p:last-child{margin-bottom:0}
+
+ol.todo{counter-reset:t;list-style:none;padding:0;margin:18px 0}
+ol.todo li{counter-increment:t;position:relative;padding:14px 0 14px 46px;border-bottom:1px solid var(--line)}
+ol.todo li:before{content:counter(t);position:absolute;left:0;top:14px;width:28px;height:28px;
+  background:var(--accent);color:#fff;border-radius:50%;text-align:center;line-height:28px;
+  font-size:13px;font-weight:700}
+ol.todo li:last-child{border-bottom:0}
+ol.todo .t{font-weight:700;font-size:14.5px;display:block;margin-bottom:2px}
+ol.todo .d{font-size:13px;color:var(--muted);display:block}
+ol.todo .e{font-size:12.5px;color:var(--accent);font-weight:700;display:block;margin-top:4px;font-variant-numeric:tabular-nums}
+
+.nope{border:1px dashed var(--line);border-radius:8px;padding:18px 22px;margin:26px 0 0;background:var(--soft)}
+.nope h4{margin:0 0 7px;font-size:14px}
+.nope p{font-size:13px;color:var(--muted);margin:0}
+
+footer{margin-top:52px;padding-top:22px;border-top:1px solid var(--line);
+  font-size:12px;color:var(--muted);line-height:1.75}
+
+@media(max-width:700px){
+  .page{padding:32px 22px 48px}
+  .kpis{grid-template-columns:repeat(2,1fr)}
+  .cover h1{font-size:22px}
+  table{font-size:12px} th,td{padding:7px 8px}
+}
+@media print{
+  body{background:#fff} .page{box-shadow:none;max-width:none;padding:0}
+  h2.ch{page-break-after:avoid} .box,table,ol.todo li{page-break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<div class="demo">
+  <b>これはサンプルです。</b>実在の企業のデータではありません。数値は説明のために作成した架空のアパレルEC（月商217万円）のもので、実績や事例ではありません。有料版でどこまで踏み込むかを見ていただくための見本です。
+</div>
+
+<div class="cover">
+  <div class="brand">ECカルテ</div>
+  <h1>EC在庫診断レポート</h1>
+  <p class="meta">対象期間：2026年7月1日 〜 7月30日（30日間）／ 対象6品番・166明細<br>
+  発行日：2026年8月4日</p>
+</div>
+
+<div class="summary">
+  <h2>結論</h2>
+  <p>この30日で最も損をしているのは、<b>売れているのに在庫がない「ウールジャケット」</b>です。単品で粗利の47%を稼いでいるのに在庫がゼロで、放置すると<b>月96万円の粗利を失い続けます</b>。今月やるべきことの1番目はこれで、他の施策より桁が一つ大きい。</p>
+  <p>次に、<b>パンツカテゴリは在庫日数193日</b>で、原価ベースで96万円が寝ています。新規投入を止め、既存の消化に切り替えてください。</p>
+  <p>逆に、<b>テーパードパンツは品薄ですが追加しないでください</b>。単品の在庫日数は12日ですが、同じパンツカテゴリ全体が193日分あります。ここで追加すると、余っている在庫の上にさらに積むことになります。</p>
+</div>
+
+<h2 class="ch"><span class="num">第 1 章</span>現状</h2>
+
+<div class="kpis">
+  <div class="kpi"><div class="l">売上</div><div class="v">¥2,170,000</div><div class="s">日平均 ¥72,333</div></div>
+  <div class="kpi"><div class="l">粗利</div><div class="v">¥1,268,600</div><div class="s">粗利率 58.5%</div></div>
+  <div class="kpi"><div class="l">注文数</div><div class="v">166件</div><div class="s">客単価 ¥13,072</div></div>
+  <div class="kpi"><div class="l">全体の在庫日数</div><div class="v">51日</div><div class="s">在庫 462点</div></div>
+</div>
+<p class="lead">粗利率58.5%は、アパレルEC としては健全な水準です。問題は総額ではなく<b>配分</b>にあります。以下、どこに偏っているかを見ます。</p>
+
+<h2 class="ch"><span class="num">第 2 章</span>カテゴリ別の投入判断</h2>
+<p class="lead">追加生産・仕入の判断は、単品の在庫日数ではなくカテゴリ全体で決めます。単品が品薄でもカテゴリが余っていれば、追加した分だけ在庫が膨らむためです。</p>
+
+<table>
+<thead><tr><th>カテゴリ</th><th class="n">売上</th><th class="n">粗利</th><th class="n">粗利構成比</th><th class="n">在庫日数</th><th>判断</th></tr></thead>
+<tbody>
+<tr><td>アウター</td><td class="n">¥960,000</td><td class="n">¥600,000</td><td class="n">47.3%</td><td class="n">0日</td><td><span class="verdict v-go">増やす</span></td></tr>
+<tr><td>Tシャツ</td><td class="n">¥880,000</td><td class="n">¥470,000</td><td class="n">37.0%</td><td class="n">38日</td><td><span class="verdict v-keep">維持</span></td></tr>
+<tr><td>パンツ</td><td class="n">¥330,000</td><td class="n">¥198,600</td><td class="n">15.7%</td><td class="n">193日</td><td><span class="verdict v-stop">止める</span></td></tr>
+<tr class="total"><td>合計</td><td class="n">¥2,170,000</td><td class="n">¥1,268,600</td><td class="n">100%</td><td class="n">51日</td><td></td></tr>
+</tbody>
+</table>
+
+<div class="box a">
+  <h4>アウター ── 増やす</h4>
+  <p>1品番だけで粗利の47.3%を稼いでいます。在庫日数0日、つまり完全な欠品です。<b>この店の利益はアウターで作られており、それが今止まっています。</b></p>
+  <p>次シーズンの投入はこのカテゴリに寄せてください。判断材料が1品番しかないため、まず同系統をもう1〜2型入れて、この粗利率62.5%が単品固有のものか、カテゴリの特性かを確かめる価値があります。</p>
+</div>
+
+<div class="box">
+  <h4>Tシャツ ── 維持</h4>
+  <p>在庫日数38日は健全です。ただし3品番のうち「ロゴプリントTシャツ」だけ粗利率21.9%と大きく劣ります（他2型は60.4%）。第5章で扱います。</p>
+</div>
+
+<div class="box d">
+  <h4>パンツ ── 止める</h4>
+  <p>在庫日数193日。売上構成比15.2%に対して在庫は212点あり、<b>原価ベースで約96万円が動かない状態</b>です。粗利構成比も15.7%と最も低い。</p>
+  <p>新規の投入を停止し、既存在庫の消化に切り替えてください。この判断が今期の資金繰りに最も効きます。</p>
+</div>
+
+<h2 class="ch"><span class="num">第 3 章</span>滞留在庫の処理計画</h2>
+
+<p><b>ワイドイージーパンツ</b>／在庫200点・原価¥4,800・上代¥12,000・日販0.10点。<br>
+現在のペースで完売まで<b>2,000日</b>（5年半）かかります。値引きで処理する場合の試算です。</p>
+
+<table>
+<thead><tr><th>値引き</th><th class="n">販売価格</th><th class="n">1点あたり粗利</th><th class="n">200点完売時の粗利</th><th class="n">現状比</th></tr></thead>
+<tbody>
+<tr><td>なし</td><td class="n">¥12,000</td><td class="n">¥7,200</td><td class="n">¥1,440,000</td><td class="n">—</td></tr>
+<tr><td>20%引き</td><td class="n">¥9,600</td><td class="n">¥4,800</td><td class="n">¥960,000</td><td class="n">−¥480,000</td></tr>
+<tr><td>30%引き</td><td class="n">¥8,400</td><td class="n">¥3,600</td><td class="n">¥720,000</td><td class="n">−¥720,000</td></tr>
+<tr><td>50%引き</td><td class="n">¥6,000</td><td class="n">¥1,200</td><td class="n">¥240,000</td><td class="n">−¥1,200,000</td></tr>
+<tr><td>60%引き</td><td class="n">¥4,800</td><td class="n">¥0</td><td class="n">¥0</td><td class="n">原価と同額</td></tr>
+</tbody>
+</table>
+
+<div class="box w">
+  <h4>推奨：単品値引きでは処理しきれない規模です</h4>
+  <p>日販0.10点という数字は、値引きで需要が3倍になっても年間110点。20%引き程度では滞留は解消しません。<b>値引き率を上げるより、売り方を変える方が粗利を残せます。</b></p>
+  <p>推奨は次の順です。① Tシャツとのセット販売（アウター/Tシャツの購買層に、パンツを組み合わせて提示する）② それでも動かない分を30%引きでアウトレット枠に出す ③ 次シーズンの投入停止を先に確定させる。</p>
+  <p>①を先に置く理由は、セット販売なら値引き率を抑えたまま点数を動かせるためです。この店は客単価¥13,072、アウターが¥24,000で売れており、<b>まとめ買いの余地がある価格帯です。</b></p>
+</div>
+
+<h2 class="ch"><span class="num">第 4 章</span>欠品の逸失額と再入荷の優先順位</h2>
+
+<table>
+<thead><tr><th>順</th><th>商品</th><th class="n">日販</th><th class="n">上代</th><th class="n">1ヶ月の逸失売上</th><th class="n">1ヶ月の逸失粗利</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>ウールジャケット</td><td class="n">1.33点</td><td class="n">¥24,000</td><td class="n">¥960,000</td><td class="n">¥600,000</td></tr>
+</tbody>
+</table>
+
+<div class="box d">
+  <h4>この1点が、他のすべての施策より重い</h4>
+  <p>期間中40点売れた実績があり、在庫はゼロです。売れる状態のまま止まっているので、<b>損失は1日あたり約2万円のペースで増え続けます。</b></p>
+  <p>アパレルのアウターは生産リードタイムが長く、今から手配しても間に合わない可能性があります。その場合の代替は次の2つです。① 同型の別色・別素材で在庫があるものを、同じ導線（同じ広告・同じメルマガ枠）に載せ替える ② 予約販売に切り替えて、需要を先に確保する。</p>
+  <p>②は在庫リスクなしで機会損失だけを回収できます。40点の実績があるので、予約が集まる見込みは十分あります。</p>
+</div>
+
+<h2 class="ch"><span class="num">第 5 章</span>粗利構造の分解</h2>
+<p class="lead">売上上位＝儲かっている、ではありません。順位のズレに改善余地があります。</p>
+
+<table>
+<thead><tr><th>商品</th><th class="n">売上順</th><th class="n">粗利順</th><th class="n">売上</th><th class="n">粗利</th><th class="n">粗利率</th></tr></thead>
+<tbody>
+<tr><td>ウールジャケット</td><td class="n">1</td><td class="n">1</td><td class="n">¥960,000</td><td class="n">¥600,000</td><td class="n">62.5%</td></tr>
+<tr><td>プレミアムTシャツ ブラック</td><td class="n">2</td><td class="n">2</td><td class="n">¥432,000</td><td class="n">¥261,000</td><td class="n">60.4%</td></tr>
+<tr><td>テーパードパンツ</td><td class="n">3</td><td class="n">3</td><td class="n">¥294,000</td><td class="n">¥177,000</td><td class="n">60.2%</td></tr>
+<tr><td>プレミアムTシャツ ホワイト</td><td class="n">4</td><td class="n">4</td><td class="n">¥288,000</td><td class="n">¥174,000</td><td class="n">60.4%</td></tr>
+<tr><td><b>ロゴプリントTシャツ</b></td><td class="n">5</td><td class="n">5</td><td class="n">¥160,000</td><td class="n">¥35,000</td><td class="n"><b>21.9%</b></td></tr>
+<tr><td>ワイドイージーパンツ</td><td class="n">6</td><td class="n">6</td><td class="n">¥36,000</td><td class="n">¥21,600</td><td class="n">60.0%</td></tr>
+</tbody>
+</table>
+
+<div class="box w">
+  <h4>ロゴプリントTシャツ ── 値上げの余地が大きい</h4>
+  <p>他の5品番が粗利率60%台で揃っている中、この1型だけ21.9%です。50点売れて粗利は¥35,000しか残っていません。同じ50点売れたプレミアムTシャツ ブラックは¥261,000の粗利です。</p>
+  <p>¥3,200 → ¥3,800（+18.8%）に改定した場合の試算：<b>数量が20%落ちても粗利は¥52,000（+48.6%）に増えます。</b>損益分岐は数量−46%で、そこまで落ちて初めて現状と同じです。値上げのリスクが構造的に小さい商品です。</p>
+  <p>原価¥2,500の内訳を確認できるなら、そちらの見直しも並行してください。この価格帯のプリントTシャツで原価率78%は高すぎます。</p>
+</div>
+
+<h2 class="ch"><span class="num">第 6 章</span>次の30日でやること</h2>
+
+<ol class="todo">
+<li><span class="t">ウールジャケットの再入荷、または予約販売の開始</span>
+<span class="d">生産リードタイムを確認し、間に合わなければ即日で予約受付に切り替える。同時に同系統の在庫品を同じ導線へ載せ替える。</span>
+<span class="e">想定効果：月 +¥600,000（粗利）</span></li>
+
+<li><span class="t">ロゴプリントTシャツを ¥3,800 へ改定</span>
+<span class="d">数量が2割落ちても粗利は増える。2週間走らせて数量の変化を測り、−46%を超えたら戻す。</span>
+<span class="e">想定効果：月 +¥17,000（粗利）</span></li>
+
+<li><span class="t">プレミアムTシャツ ブラックを追加発注</span>
+<span class="d">在庫30点・日販3.0点で、あと10日で切れる。Tシャツカテゴリ全体は38日で健全なので、ここは追加して問題ない。</span>
+<span class="e">欠品を防ぐ：月 ¥261,000 の粗利を維持</span></li>
+
+<li><span class="t">パンツカテゴリの新規投入を停止</span>
+<span class="d">在庫日数193日。次シーズンの発注リストからパンツを外し、その予算をアウターへ振り替える。</span>
+<span class="e">資金拘束の回避：約¥960,000（原価ベース）</span></li>
+
+<li><span class="t">ワイドイージーパンツのセット販売を開始</span>
+<span class="d">アウター・Tシャツ購入者への同梱提案から始める。値引きは最後の手段として温存する。</span>
+<span class="e">在庫200点の消化着手</span></li>
+
+<li><span class="t">テーパードパンツは追加しない</span>
+<span class="d">在庫日数12日で品薄に見えるが、カテゴリ全体が193日。ここを追加すると4番の判断と矛盾する。</span>
+<span class="e">誤発注の回避</span></li>
+</ol>
+
+<div class="nope">
+  <h4>このレポートでやらないこと</h4>
+  <p>将来の売上予測は行っていません。過去に需要予測の精度を検証したところ、誤差±33%で発注判断に使える水準ではありませんでした。外れた予測は誤った発注を生み、在庫を増やします。したがって本レポートは、確定したデータの解釈と、そこから導ける判断だけで構成しています。</p>
+</div>
+
+<footer>
+  ECカルテ｜EC在庫診断レポート（サンプル）<br>
+  本レポートは提供いただいた受注データのみに基づいて作成しています。商品ページの統合や廃番の直後は、旧エントリが在庫0のまま残り、集計に影響する場合があります。最終的な発注判断は実在庫と突き合わせた上で行ってください。<br>
+  受領したデータは診断完了後に削除し、第三者には提供しません。
+</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ECカルテ｜受注CSVから「明日やること」を出す</title>
+<meta name="description" content="受注CSVをアップロードすると、売上・粗利・在庫日数を集計し、追加生産・値引き・欠品対応の判断を提示します。データはブラウザ内だけで処理され、サーバーには送信されません。">
+<style>
+:root{
+  --bg:#fbfbfa; --panel:#fff; --line:#e6e4df; --text:#1c1b19; --muted:#6f6c66;
+  --accent:#1a5f4a; --accent-soft:#e8f2ee;
+  --warn:#a4571b; --warn-soft:#fdf1e4; --danger:#9b2c2c; --danger-soft:#fdecec;
+  --ok:#1a5f4a; --ok-soft:#e8f2ee;
+  --radius:10px; --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{ --bg:#16171a; --panel:#1e2024; --line:#32353b; --text:#e8e6e3; --muted:#9a978f;
+    --accent:#5fb99b; --accent-soft:#1b2f2a; --warn:#d69a5c; --warn-soft:#2d2419;
+    --danger:#e08585; --danger-soft:#2e1c1c; --ok:#5fb99b; --ok-soft:#1b2f2a; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+  line-height:1.7;-webkit-font-smoothing:antialiased}
+.wrap{max-width:940px;margin:0 auto;padding:0 20px}
+header{padding:56px 0 40px;text-align:center;border-bottom:1px solid var(--line)}
+.logo{font-size:13px;letter-spacing:.14em;color:var(--accent);font-weight:700;margin-bottom:14px}
+h1{font-size:29px;line-height:1.45;margin:0 0 16px;letter-spacing:-.01em}
+h1 .sub{display:block;font-size:16px;font-weight:400;color:var(--muted);margin-top:12px;letter-spacing:0}
+.badges{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:24px}
+.badge{font-size:12.5px;padding:6px 13px;border:1px solid var(--line);border-radius:100px;
+  background:var(--panel);color:var(--muted)}
+.badge b{color:var(--accent);font-weight:600}
+section{padding:40px 0}
+h2{font-size:19px;margin:0 0 8px;letter-spacing:-.01em}
+h2 .n{display:inline-block;width:23px;height:23px;line-height:23px;text-align:center;font-size:12px;
+  background:var(--accent);color:#fff;border-radius:50%;margin-right:9px;vertical-align:2px;font-weight:700}
+h3{font-size:17px;margin:30px 0 6px}
+.lead{color:var(--muted);font-size:14px;margin:0 0 20px}
+#drop{border:2px dashed var(--line);border-radius:var(--radius);padding:44px 24px;text-align:center;
+  background:var(--panel);cursor:pointer;transition:.15s}
+#drop:hover,#drop.over{border-color:var(--accent);background:var(--accent-soft)}
+#drop .big{font-size:16px;font-weight:600;margin-bottom:6px}
+#drop .small{font-size:13px;color:var(--muted)}
+input[type=file]{display:none}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:22px}
+.hide{display:none!important}
+.maprow{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;align-items:center;margin-bottom:11px}
+.maprow label{font-size:13.5px}
+.maprow label .req{color:var(--danger);font-size:11px;margin-left:5px}
+.maprow label .opt{color:var(--muted);font-size:11px;margin-left:5px}
+select,input[type=number]{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;
+  background:var(--bg);color:var(--text);font-size:13.5px;font-family:inherit}
+.btn{display:inline-block;padding:11px 26px;background:var(--accent);color:#fff;border:0;
+  border-radius:7px;font-size:14.5px;font-weight:600;cursor:pointer;font-family:inherit}
+.btn:hover{opacity:.88}
+.btn.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
+.btnrow{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:26px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:15px 17px}
+.kpi .l{font-size:12px;color:var(--muted);margin-bottom:5px}
+.kpi .v{font-size:23px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpi .s{font-size:11.5px;color:var(--muted);margin-top:3px;min-height:1em}
+.act{border:1px solid var(--line);border-left-width:4px;border-radius:8px;padding:15px 17px;margin-bottom:11px;background:var(--panel)}
+.act.danger{border-left-color:var(--danger);background:var(--danger-soft)}
+.act.warn{border-left-color:var(--warn);background:var(--warn-soft)}
+.act.ok{border-left-color:var(--ok);background:var(--ok-soft)}
+.act h4{margin:0 0 5px;font-size:14.5px}
+.act .why{font-size:13px;color:var(--muted);margin:0 0 9px}
+.act ul{margin:0;padding-left:18px;font-size:13.5px}
+.act li{margin-bottom:3px;font-variant-numeric:tabular-nums}
+.act .none{font-size:13.5px;color:var(--muted);margin:0}
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--panel)}
+table{border-collapse:collapse;width:100%;font-size:13px;min-width:560px}
+th,td{padding:9px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{background:var(--bg);font-weight:600;font-size:12px;color:var(--muted)}
+td.num,th.num{text-align:right}
+td.num{font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.5px}
+tr:last-child td{border-bottom:0}
+.tag{font-size:11px;padding:2px 8px;border-radius:100px;font-weight:600;white-space:nowrap}
+.tag.d{background:var(--danger-soft);color:var(--danger)}
+.tag.w{background:var(--warn-soft);color:var(--warn)}
+.tag.o{background:var(--ok-soft);color:var(--ok)}
+.note{font-size:12.5px;color:var(--muted);margin-top:14px;padding-left:15px;border-left:2px solid var(--line)}
+.err{background:var(--danger-soft);color:var(--danger);padding:12px 15px;border-radius:8px;font-size:13.5px;margin-top:14px}
+.cta{background:var(--accent-soft);border:1px solid var(--accent);border-radius:var(--radius);padding:24px;text-align:center;margin-top:32px}
+.cta h3{margin:0 0 8px;font-size:17px}
+.cta p{margin:0 0 16px;font-size:13.5px;color:var(--muted)}
+footer{border-top:1px solid var(--line);padding:32px 0 56px;font-size:12.5px;color:var(--muted);text-align:center;margin-top:40px}
+.rephead{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.printbtn{padding:8px 18px;background:transparent;color:var(--accent);border:1px solid var(--accent);
+  border-radius:7px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+.printbtn:hover{background:var(--accent-soft)}
+.printonly{display:none}
+@media(max-width:600px){
+  h1{font-size:23px} .maprow{grid-template-columns:1fr;gap:5px}
+  header{padding:38px 0 30px} section{padding:30px 0}
+}
+@media print{
+  header,#mapsec,footer,.printbtn,.cta,#drop,#err{display:none!important}
+  .printonly{display:block}
+  body{background:#fff;color:#000;font-size:11pt;line-height:1.7}
+  .wrap{max-width:none;padding:0}
+  section{padding:0}
+  .panel,.kpi,.act,.tblwrap,table{background:#fff!important}
+  .kpi,.act,.tblwrap{border-color:#ccc!important}
+  .act{background:#fafafa!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .tag{border:1px solid #999;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  h2 .n{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  h3,h2{page-break-after:avoid}
+  .act,table,.kpis{page-break-inside:avoid}
+  th{position:static}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap">
+    <div class="logo">ECカルテ</div>
+    <h1>受注CSVから、明日やることを出す。
+      <span class="sub">売上を眺めるためのツールではありません。追加生産・値引き・欠品対応の「判断」を出します。</span>
+    </h1>
+    <div class="badges">
+      <span class="badge"><b>完全ブラウザ内処理</b>／送信なし</span>
+      <span class="badge"><b>会員登録不要</b></span>
+      <span class="badge"><b>無料</b></span>
+      <span class="badge">Future Shop・Shopify・カラーミー他</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+<section>
+  <h2><span class="n">1</span>受注CSVを読み込む</h2>
+  <p class="lead">カートの管理画面から出力した受注明細CSVを選んでください。ファイルはあなたのブラウザの中だけで処理され、どこにも送信されません（ページを閉じた時点で消えます）。Shift_JIS・UTF-8どちらでも読めます。</p>
+  <div id="drop">
+    <div class="big">CSVファイルをドロップ、またはクリックして選択</div>
+    <div class="small">在庫数・原価の列があれば、判断まで出せます</div>
+  </div>
+  <input type="file" id="file" accept=".csv,.txt,text/csv">
+  <p class="lead" style="margin:14px 0 0;text-align:center">
+    自分のCSVを出す前に中身を見たい方は
+    <a href="#" id="demo" style="color:var(--accent)">サンプルデータで試す</a>
+  </p>
+  <div id="err" class="err hide"></div>
+</section>
+
+<section id="mapsec" class="hide">
+  <h2><span class="n">2</span>列を確認する</h2>
+  <p class="lead">自動で判定しました。違っていれば直してください。<b>必須は「商品名」と「金額（または単価）」の2つだけ</b>です。</p>
+  <div class="panel">
+    <div id="maps"></div>
+    <div class="maprow" style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">
+      <label>集計期間の日数<span class="opt">受注日の列がない場合に使用</span></label>
+      <input type="number" id="days" value="30" min="1" max="730">
+    </div>
+    <div class="btnrow">
+      <button class="btn" id="run">レポートを作成</button>
+      <button class="btn ghost" id="reset">別のファイルを読む</button>
+    </div>
+  </div>
+</section>
+
+<section id="rep" class="hide"></section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    ECカルテ ｜ このページはあなたのブラウザ内だけで動作します。アップロードも保存も行いません。<br>
+    集計結果は入力データの品質に依存します。最終判断は必ず実物と突き合わせてください。
+  </div>
+</footer>
+
+<script src="core.js"></script>
+<script>
+'use strict';
+const $=id=>document.getElementById(id);
+const {decodeBuf,parseCSV,guess,compute,judge,yen,pct,fmtDio,esc,FIELDS}=window.ECK;
+let RAW=null, HEAD=null;
+
+/* ---------- 読み込み ---------- */
+const drop=$('drop'), fileEl=$('file');
+drop.onclick=()=>fileEl.click();
+drop.ondragover=e=>{e.preventDefault();drop.classList.add('over');};
+drop.ondragleave=()=>drop.classList.remove('over');
+drop.ondrop=e=>{e.preventDefault();drop.classList.remove('over');
+  if(e.dataTransfer.files[0]) load(e.dataTransfer.files[0]);};
+fileEl.onchange=e=>{ if(e.target.files[0]) load(e.target.files[0]); };
+
+function showErr(m){ $('err').textContent=m; $('err').classList.remove('hide'); }
+
+function load(file){
+  $('err').classList.add('hide');
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const rows=parseCSV(decodeBuf(r.result));
+      if(rows.length<2){ showErr('データ行が見つかりませんでした。1行目が見出し、2行目以降がデータのCSVを読み込んでください。'); return; }
+      HEAD=rows[0].map(h=>String(h).trim());
+      RAW=rows.slice(1).filter(x=>x.length>=Math.max(2,Math.floor(HEAD.length*0.4)));
+      if(!RAW.length){ showErr('見出し行しか読み取れませんでした。'); return; }
+      buildMap();
+    }catch(e){ showErr('CSVの読み込みに失敗しました：'+e.message); }
+  };
+  r.onerror=()=>showErr('ファイルを読み取れませんでした。');
+  r.readAsArrayBuffer(file);
+}
+
+/* サンプルデータ（アパレルECの1ヶ月・166明細を模したもの） */
+$('demo').onclick=async e=>{
+  e.preventDefault();
+  $('err').classList.add('hide');
+  try{
+    const res=await fetch('sample_orders.csv');
+    if(!res.ok) throw new Error('サンプルを取得できませんでした（'+res.status+'）');
+    const rows=parseCSV(decodeBuf(await res.arrayBuffer()));
+    HEAD=rows[0].map(h=>String(h).trim());
+    RAW=rows.slice(1);
+    buildMap();
+  }catch(err){ showErr('サンプルの読み込みに失敗しました：'+err.message); }
+};
+
+function buildMap(){
+  const g=guess(HEAD);
+  $('maps').innerHTML=FIELDS.map(f=>{
+    const opts=['<option value="-1">— なし —</option>']
+      .concat(HEAD.map((h,i)=>`<option value="${i}"${g[f.k]===i?' selected':''}>${esc(h||'（列'+(i+1)+'）')}</option>`)).join('');
+    return `<div class="maprow"><label>${f.label}${f.req?'<span class="req">必須</span>':'<span class="opt">任意</span>'}</label>
+      <select id="m_${f.k}">${opts}</select></div>`;
+  }).join('');
+  $('mapsec').classList.remove('hide');
+  $('rep').classList.add('hide');
+  $('mapsec').scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+$('reset').onclick=()=>{ fileEl.value=''; $('mapsec').classList.add('hide');
+  $('rep').classList.add('hide'); $('err').classList.add('hide');
+  window.scrollTo({top:0,behavior:'smooth'}); };
+
+$('run').onclick=()=>{
+  $('err').classList.add('hide');
+  const M={};
+  FIELDS.forEach(f=>{ const v=parseInt($('m_'+f.k).value,10); if(v>=0) M[f.k]=v; });
+  try{ render(compute(HEAD,RAW,M,$('days').value)); }
+  catch(e){ showErr(e.message); }
+};
+
+/* ---------- 描画 ---------- */
+function kpi(l,v,s){ return `<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="s">${s||''}</div></div>`; }
+
+function actLine(a,p){
+  switch(a.id){
+    case 'reorder': return `${esc(p.name)} — 在庫日数 <b>${fmtDio(p.dio)}</b>（在庫${p.stock.toLocaleString()}点／日販${p.daily.toFixed(2)}点）`;
+    case 'hold':    return `${esc(p.name)} — 単品 ${fmtDio(p.dio)} ／ カテゴリ「${esc(p.cat)}」全体 ${fmtDio(p._catDio)}`;
+    case 'slow':    return `${esc(p.name)} — 在庫日数 <b>${fmtDio(p.dio)}</b>（在庫${p.stock.toLocaleString()}点／日販${p.daily.toFixed(2)}点）`;
+    case 'dead':    return `${esc(p.name)} — 在庫 ${p.stock.toLocaleString()}点`;
+    case 'oos':     return `${esc(p.name)} — 日販${p.daily.toFixed(2)}点 → 1ヶ月あたり 約${yen(p.amt/p.qty*p.daily*30)}の逸失`;
+    case 'lowgp':   return `${esc(p.name)} — 粗利率 <b>${pct(p.gpr)}</b>（売上${yen(p.amt)}／粗利${yen(p.gross)}）`;
+    default:        return esc(p.name);
+  }
+}
+
+function render(D){
+  const {items,C,days,dateNote,totalAmt,totalQty,totalGross,orderCount,hasCost,hasStock}=D;
+  const H=[];
+
+  H.push('<div class="rephead"><h2 style="margin-bottom:0"><span class="n">3</span>レポート</h2>');
+  H.push('<button class="printbtn" id="print">印刷 ／ PDFで保存</button></div>');
+  H.push('<div class="printonly" style="margin-bottom:18px;padding-bottom:14px;border-bottom:2px solid currentColor">'
+    + '<div style="font-size:11px;letter-spacing:.14em;font-weight:700;margin-bottom:6px">ECカルテ</div>'
+    + '<div style="font-size:18px;font-weight:700">在庫レポート</div></div>');
+  H.push(`<p class="lead">集計期間：${esc(dateNote)}（${days}日間）／ 対象 ${items.length.toLocaleString()} 品番</p>`);
+
+  H.push('<div class="kpis">');
+  H.push(kpi('売上', yen(totalAmt), `日平均 ${yen(totalAmt/days)}`));
+  H.push(kpi('販売点数', totalQty.toLocaleString()+'点', `日平均 ${(totalQty/days).toFixed(1)}点`));
+  if(orderCount) H.push(kpi('注文数', orderCount.toLocaleString()+'件', `客単価 ${yen(totalAmt/orderCount)}`));
+  if(hasCost){
+    H.push(kpi('粗利', yen(totalGross), '原価列から算出'));
+    H.push(kpi('粗利率', pct(totalAmt>0?totalGross/totalAmt:0), ''));
+  }else{
+    H.push(kpi('平均単価', yen(totalQty>0?totalAmt/totalQty:0), '1点あたり'));
+  }
+  if(hasStock){
+    let ts=0, td=0; C.forEach(c=>{ ts+=c.stock; td+=c.daily; });
+    H.push(kpi('全体の在庫日数', td>0?Math.round(ts/td)+'日':'—', `在庫 ${ts.toLocaleString()}点`));
+  }
+  H.push('</div>');
+
+  H.push('<h3 style="margin-top:0">明日やること</h3>');
+  if(!D.actions.length){
+    H.push(`<div class="act warn"><h4>在庫数・原価の列を追加すると、判断まで出せます</h4>
+      <p class="why">今回のCSVには在庫数と原価がありませんでした。これらがあると「追加生産すべき商品」「値引きすべき商品」「欠品による逸失売上」「薄利の主力商品」まで自動で出せます。</p>
+      <ul><li>カートの管理画面で、受注CSVに在庫数・原価の列を含めて出力してください</li>
+      <li>在庫CSVを別途出して、商品コードで結合したファイルでも構いません</li></ul></div>`);
+  }else{
+    D.actions.forEach(a=>{
+      a.items.forEach(p=>{ const c=C.get(p.cat); p._catDio = c ? c.dio : null; });
+      const body = a.items.length
+        ? '<ul>'+a.items.map(p=>'<li>'+actLine(a,p)+'</li>').join('')+'</ul>'
+        : `<p class="none">${a.empty||'該当なし。'}</p>`;
+      H.push(`<div class="act ${a.items.length?a.level:'ok'}"><h4>${a.title}</h4>
+        <p class="why">${a.why}</p>${body}</div>`);
+    });
+  }
+
+  const key = hasCost ? 'gross' : 'amt';
+  const top = items.filter(p=>p.qty>0).sort((a,b)=>(b[key]||0)-(a[key]||0)).slice(0,30);
+  H.push(`<h3>${hasCost?'粗利':'売上'}ランキング（上位${top.length}）</h3>`);
+  if(hasCost) H.push('<p class="lead">売上ではなく<b>粗利の大きい順</b>に並べています。売上上位＝儲かっている、とは限らないためです。</p>');
+  H.push('<div class="tblwrap"><table><thead><tr><th>#</th><th>商品名</th><th>カテゴリ</th><th class="num">数量</th><th class="num">売上</th>');
+  if(hasCost) H.push('<th class="num">粗利</th><th class="num">粗利率</th>');
+  if(hasStock) H.push('<th class="num">在庫</th><th class="num">在庫日数</th><th>判定</th>');
+  H.push('</tr></thead><tbody>');
+  top.forEach((p,i)=>{
+    H.push(`<tr><td class="num">${i+1}</td><td>${esc(p.name)}</td><td>${esc(p.cat)}</td>`);
+    H.push(`<td class="num">${p.qty.toLocaleString()}</td><td class="num">${yen(p.amt)}</td>`);
+    if(hasCost) H.push(`<td class="num">${yen(p.gross||0)}</td><td class="num">${p.gpr!=null?pct(p.gpr):'—'}</td>`);
+    if(hasStock){
+      const j=judge(p,C);
+      H.push(`<td class="num">${p.stock!=null?p.stock.toLocaleString():'—'}</td>`);
+      H.push(`<td class="num">${p.dio!=null?fmtDio(p.dio):'—'}</td>`);
+      H.push(`<td>${j?`<span class="tag ${j.c}">${j.t}</span>`:''}</td>`);
+    }
+    H.push('</tr>');
+  });
+  H.push('</tbody></table></div>');
+
+  if(C.size>1){
+    const cats=[...C.values()].sort((a,b)=>b.amt-a.amt);
+    H.push('<h3>カテゴリ別</h3>');
+    H.push('<p class="lead">追加生産の判断は、単品の在庫日数ではなく<b>この表のカテゴリ在庫日数</b>を見てから決めてください。単品が品薄でもカテゴリ全体が余っていれば、作ると在庫が膨らみます。</p>');
+    H.push('<div class="tblwrap"><table><thead><tr><th>カテゴリ</th><th class="num">品番数</th><th class="num">数量</th><th class="num">売上</th><th class="num">構成比</th>');
+    if(hasStock) H.push('<th class="num">在庫</th><th class="num">在庫日数</th>');
+    H.push('</tr></thead><tbody>');
+    cats.forEach(c=>{
+      H.push(`<tr><td>${esc(c.cat)}</td><td class="num">${c.n}</td><td class="num">${c.qty.toLocaleString()}</td><td class="num">${yen(c.amt)}</td><td class="num">${pct(totalAmt>0?c.amt/totalAmt:0)}</td>`);
+      if(hasStock) H.push(`<td class="num">${c.hasStock?c.stock.toLocaleString():'—'}</td><td class="num">${c.dio!=null?fmtDio(c.dio):'—'}</td>`);
+      H.push('</tr>');
+    });
+    H.push('</tbody></table></div>');
+  }
+
+  H.push(`<div class="note">この集計は読み込んだCSVの内容だけに基づいています。将来の売上予測は行っていません（外れた予測は誤った発注につながるため、確定データの解釈だけを出す方針です）。商品ページの統合や廃番の直後は、旧エントリが在庫0のまま残って誤検知することがあります。</div>`);
+
+  H.push(`<div class="cta"><h3>この内容が毎朝、自動で届いたら使いますか</h3>
+    <p>CSVを毎回上げるのではなく、受注データを繋いで毎朝LINEかメールに届く有料版を準備しています。<br>使ってみたい方、欲しい項目がある方はご連絡ください。</p>
+    <button class="btn" id="cta">有料版の案内を受け取る</button></div>`);
+
+  $('rep').innerHTML=H.join('');
+  const c=$('cta'); if(c) c.onclick=()=>alert('準備中です。連絡先の設置後に受付を開始します。');
+  const pb=$('print'); if(pb) pb.onclick=()=>window.print();
+  $('rep').classList.remove('hide');
+  $('rep').scrollIntoView({behavior:'smooth',block:'start'});
+}
+</script>
+</body>
+</html>
