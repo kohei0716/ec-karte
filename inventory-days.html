@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>在庫日数12日の商品を追加発注してはいけない場合｜ECカルテ</title>
+<meta name="description" content="単品の在庫日数だけを見て追加発注すると、在庫は膨らみます。カテゴリ全体の在庫日数と突き合わせる理由と、具体的な判断手順をアパレルECのMDが解説します。">
+<link rel="canonical" href="https://kohei0716.github.io/ec-karte/inventory-days.html">
+<style>
+:root{
+  --bg:#fbfbfa; --panel:#fff; --line:#e6e4df; --text:#1c1b19; --muted:#6f6c66;
+  --accent:#1a5f4a; --accent-soft:#e8f2ee;
+  --warn:#a4571b; --warn-soft:#fdf3e8; --danger:#9b2c2c; --danger-soft:#fdeeee;
+  --mono:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){
+  :root{ --bg:#16171a; --panel:#1e2024; --line:#32353b; --text:#e8e6e3; --muted:#9a978f;
+    --accent:#5fb99b; --accent-soft:#1b2f2a; --warn:#d69a5c; --warn-soft:#2d2419;
+    --danger:#e08585; --danger-soft:#2e1c1c; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+  line-height:1.9;-webkit-font-smoothing:antialiased;font-size:16px}
+.wrap{max-width:720px;margin:0 auto;padding:0 20px}
+.topbar{border-bottom:1px solid var(--line);padding:16px 0;font-size:13px}
+.topbar a{color:var(--accent);text-decoration:none;font-weight:700;letter-spacing:.1em}
+.topbar .nav{float:right;color:var(--muted);font-weight:400;letter-spacing:0}
+.topbar .nav a{color:var(--muted);font-weight:400;margin-left:16px}
+.topbar:after{content:"";display:table;clear:both}
+
+article{padding:44px 0 0}
+h1{font-size:31px;line-height:1.45;letter-spacing:-.01em;margin:0 0 14px}
+.meta{font-size:13px;color:var(--muted);margin-bottom:36px;padding-bottom:20px;border-bottom:1px solid var(--line)}
+h2{font-size:21px;margin:44px 0 14px;padding-top:8px;letter-spacing:-.01em}
+h3{font-size:17px;margin:30px 0 10px}
+p{margin:0 0 20px}
+strong{font-weight:700;background:linear-gradient(transparent 62%,rgba(26,95,74,.16) 62%)}
+@media (prefers-color-scheme:dark){ strong{background:linear-gradient(transparent 62%,rgba(95,185,155,.22) 62%)} }
+
+.lead{font-size:17.5px;color:var(--text);background:var(--accent-soft);border-left:4px solid var(--accent);
+  padding:20px 24px;border-radius:0 8px 8px 0;margin:0 0 36px;line-height:1.8}
+.lead p:last-child{margin-bottom:0}
+
+table{border-collapse:collapse;width:100%;font-size:14px;margin:22px 0}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left}
+th{background:var(--panel);font-size:12.5px;color:var(--muted);font-weight:600;white-space:nowrap}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:13px}
+th.n{font-family:inherit}
+tbody tr:last-child td{border-bottom:2px solid var(--text)}
+
+.box{border:1px solid var(--line);border-left-width:4px;border-radius:0 8px 8px 0;
+  padding:16px 22px;margin:24px 0;background:var(--panel);font-size:15px}
+.box.d{border-left-color:var(--danger);background:var(--danger-soft)}
+.box.w{border-left-color:var(--warn);background:var(--warn-soft)}
+.box.a{border-left-color:var(--accent);background:var(--accent-soft)}
+.box h4{margin:0 0 8px;font-size:15.5px}
+.box p:last-child{margin-bottom:0}
+
+ol,ul{margin:0 0 20px;padding-left:24px}
+li{margin-bottom:9px}
+
+.cta{border:1px solid var(--accent);border-radius:10px;padding:24px;margin:44px 0 0;background:var(--accent-soft)}
+.cta h3{margin:0 0 8px;font-size:17px}
+.cta p{font-size:14.5px;color:var(--muted);margin-bottom:16px}
+.btn{display:inline-block;padding:11px 26px;background:var(--accent);color:#fff;
+  border-radius:7px;font-size:14.5px;font-weight:700;text-decoration:none}
+.btn:hover{opacity:.88}
+
+footer{border-top:1px solid var(--line);margin-top:52px;padding:26px 0 60px;
+  font-size:12.5px;color:var(--muted);line-height:1.8}
+footer a{color:var(--accent)}
+@media(max-width:600px){ h1{font-size:25px} body{font-size:15.5px} }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <div class="topbar">
+    <a href="index.html">ECカルテ</a>
+    <span class="nav"><a href="blog.html">記事一覧</a><a href="index.html">無料ツール</a></span>
+  </div>
+
+<article>
+  <h1>在庫日数12日の商品を、追加発注してはいけない場合</h1>
+  <p class="meta">2026年8月7日 ／ アパレルECのMD（商品計画・在庫管理）</p>
+
+  <div class="lead">
+    <p>単品の在庫日数だけを見て発注すると、在庫は膨らみます。<br>
+    見るべきは<strong>その商品が属するカテゴリ全体の在庫日数</strong>です。</p>
+  </div>
+
+  <p>在庫日数は、EC の在庫管理でいちばん使われる指標です。計算も単純で、<span style="font-family:var(--mono);font-size:14px">在庫数 ÷ 日販</span> で出ます。在庫が30点、1日に3点売れているなら10日。あと10日で切れる、というわけです。</p>
+
+  <p>この数字が小さいと「もうすぐ切れる、追加しよう」と考えます。実際、多くの在庫管理ツールは在庫日数が閾値を割った商品をアラートとして出します。</p>
+
+  <p>ですが、<strong>この数字だけで発注を決めると、在庫は増え続けます</strong>。理由を、実際に起きる形で説明します。</p>
+
+  <h2>同じ数字から、逆の判断が出る</h2>
+
+  <p>あるアパレルECの、1ヶ月分のデータです。</p>
+
+  <table>
+    <thead><tr><th>商品</th><th class="n">在庫</th><th class="n">日販</th><th class="n">在庫日数</th></tr></thead>
+    <tbody>
+      <tr><td>テーパードパンツ</td><td class="n">12点</td><td class="n">1.0点</td><td class="n">12日</td></tr>
+    </tbody>
+  </table>
+
+  <p>在庫日数12日。2週間を切っています。売れ筋で、このままだと欠品します。追加発注すべきに見えます。</p>
+
+  <p>ところが、同じ商品が属する「パンツ」カテゴリ全体を見ると、こうなっていました。</p>
+
+  <table>
+    <thead><tr><th>カテゴリ</th><th class="n">品番数</th><th class="n">在庫</th><th class="n">日販</th><th class="n">在庫日数</th></tr></thead>
+    <tbody>
+      <tr><td>パンツ</td><td class="n">2</td><td class="n">212点</td><td class="n">1.1点</td><td class="n">193日</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>カテゴリ全体では193日分の在庫がありました。</strong> 半年以上動かない量です。内訳を見ると、もう1品番（ワイドイージーパンツ）に200点の在庫があり、それがほとんど売れていませんでした。</p>
+
+  <div class="box d">
+    <h4>ここで追加発注すると何が起きるか</h4>
+    <p>テーパードパンツを追加した分だけ、パンツカテゴリの在庫はさらに増えます。193日が210日になり、220日になる。<strong>売れていない在庫の上に、売れる在庫を積むことになります。</strong></p>
+    <p>資金は在庫に変わったまま戻ってきません。この例では、原価ベースで約96万円がパンツカテゴリに寝ていました。</p>
+  </div>
+
+  <h2>なぜ、単品だけを見てしまうのか</h2>
+
+  <p>理由は単純で、<strong>単品の在庫日数は簡単に出せて、カテゴリの在庫日数は出しにくい</strong>からです。</p>
+
+  <p>受注データと在庫データを商品コードで結合し、カテゴリで集計し、それぞれの日販を出して割る。手作業だと数十分かかります。毎日はできません。</p>
+
+  <p>結果として、日々の発注判断は「アラートが出た商品を見る」形になります。アラートは単品単位で出ます。カテゴリ全体は視界に入りません。</p>
+
+  <p>この構造が、在庫を増やします。<strong>個々の判断は全部正しいのに、合計すると間違っている</strong>という状態です。</p>
+
+  <h2>判断の手順</h2>
+
+  <p>実務では、次の順で見ています。</p>
+
+  <ol>
+    <li><strong>カテゴリ全体の在庫日数を先に出す</strong>。単品より先です。順番を逆にすると、単品の数字に引っ張られます。</li>
+    <li>カテゴリが<strong>45日未満</strong>なら、そのカテゴリは品薄。単品で在庫日数が短いものは追加してよい。</li>
+    <li>カテゴリが<strong>45日以上</strong>なら、単品が何日であっても<strong>追加しない</strong>。まずカテゴリ内の消化を優先する。</li>
+    <li>それでも欠品させたくない売れ筋がある場合は、<strong>同カテゴリ内の滞留品を先に動かす施策</strong>（セット販売・同梱・露出変更）とセットで考える。</li>
+  </ol>
+
+  <div class="box a">
+    <h4>45日という数字について</h4>
+    <p>これは業態によって変わります。回転の速い消耗品なら30日、シーズン商材なら60〜90日が妥当な場合もあります。<strong>大事なのは数字そのものではなく、「単品とカテゴリの両方を見てから決める」という順序です。</strong></p>
+  </div>
+
+  <h2>ついでに見ておくべきこと</h2>
+
+  <h3>売上ランキングではなく、粗利ランキングで並べる</h3>
+
+  <p>同じデータで、売上上位と粗利上位を並べると、ズレが出ることがあります。先ほどのECでは、売上5位のロゴプリントTシャツが粗利率21.9%でした。他の商品は60%台です。</p>
+
+  <p>50点売れて粗利は35,000円。同じく50点売れた別のTシャツは粗利261,000円でした。<strong>売れているのに、利益がほとんど残っていない商品</strong>です。売上ランキングだけを見ていると、これは主力商品に見えます。</p>
+
+  <h3>欠品は「損失が増え続けている」状態</h3>
+
+  <p>同じECで、アウターが在庫ゼロでした。期間中に40点売れていて、粗利の47%を稼いでいた商品です。日販から逆算すると、<strong>1ヶ月あたり約60万円の粗利を失い続けている</strong>計算になります。</p>
+
+  <p>滞留在庫の値引きを検討するより先に、まずここを止める方が桁が大きい。優先順位はこうやって決めます。</p>
+
+  <h2>まとめ</h2>
+
+  <ul>
+    <li>単品の在庫日数だけで発注を決めると、在庫は膨らむ</li>
+    <li>カテゴリ全体の在庫日数を<strong>先に</strong>見る</li>
+    <li>カテゴリが厚いなら、単品が品薄でも追加しない</li>
+    <li>売上ではなく粗利で並べ直すと、判断が変わることがある</li>
+    <li>欠品は損失が毎日増えるので、優先度は滞留処理より高い</li>
+  </ul>
+
+  <p>数字を出すこと自体は難しくありません。難しいのは、<strong>どの数字とどの数字を突き合わせるか</strong>を決めることです。</p>
+
+  <div class="cta">
+    <h3>自分の店の数字で確かめる</h3>
+    <p>受注CSVを読み込むと、単品とカテゴリの在庫日数を並べて出すツールを無料で公開しています。データはブラウザの中だけで処理され、どこにも送信されません。</p>
+    <a class="btn" href="index.html">ECカルテを使う（無料）</a>
+  </div>
+</article>
+
+<footer>
+  ECカルテ｜受注CSVから在庫の判断を出す無料ツール<br>
+  本記事の数値は、説明のために作成した架空のアパレルEC（月商217万円）のものです。実在の企業のデータではありません。<br>
+  <a href="index.html">トップへ</a> ／ <a href="blog.html">記事一覧</a>
+</footer>
+</div>
+</body>
+</html>

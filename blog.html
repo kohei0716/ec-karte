@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>記事一覧｜ECカルテ</title>
+<meta name="description" content="アパレルECのMDが、在庫・粗利・発注判断の実務を書いています。数字の出し方ではなく、どの数字とどの数字を突き合わせるかの話です。">
+<style>
+:root{
+  --bg:#fbfbfa; --panel:#fff; --line:#e6e4df; --text:#1c1b19; --muted:#6f6c66;
+  --accent:#1a5f4a; --accent-soft:#e8f2ee;
+}
+@media (prefers-color-scheme:dark){
+  :root{ --bg:#16171a; --panel:#1e2024; --line:#32353b; --text:#e8e6e3; --muted:#9a978f;
+    --accent:#5fb99b; --accent-soft:#1b2f2a; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",sans-serif;
+  line-height:1.85;-webkit-font-smoothing:antialiased}
+.wrap{max-width:720px;margin:0 auto;padding:0 20px}
+.topbar{border-bottom:1px solid var(--line);padding:16px 0;font-size:13px}
+.topbar a{color:var(--accent);text-decoration:none;font-weight:700;letter-spacing:.1em}
+.topbar .nav{float:right;color:var(--muted);font-weight:400;letter-spacing:0}
+.topbar .nav a{color:var(--muted);font-weight:400;margin-left:16px}
+.topbar:after{content:"";display:table;clear:both}
+
+header{padding:48px 0 36px;border-bottom:1px solid var(--line)}
+h1{font-size:27px;margin:0 0 12px;letter-spacing:-.01em}
+header p{color:var(--muted);font-size:14.5px;margin:0;line-height:1.8}
+
+.list{padding:8px 0 0}
+.item{display:block;text-decoration:none;color:inherit;padding:26px 0;border-bottom:1px solid var(--line)}
+.item:hover h2{color:var(--accent)}
+.item .date{font-size:12.5px;color:var(--muted);margin-bottom:6px}
+.item h2{font-size:19px;margin:0 0 8px;line-height:1.5;letter-spacing:-.01em}
+.item p{font-size:14px;color:var(--muted);margin:0;line-height:1.75}
+
+.cta{border:1px solid var(--accent);border-radius:10px;padding:24px;margin:40px 0 0;background:var(--accent-soft)}
+.cta h3{margin:0 0 8px;font-size:17px}
+.cta p{font-size:14.5px;color:var(--muted);margin:0 0 16px}
+.btn{display:inline-block;padding:11px 26px;background:var(--accent);color:#fff;
+  border-radius:7px;font-size:14.5px;font-weight:700;text-decoration:none}
+
+footer{border-top:1px solid var(--line);margin-top:48px;padding:26px 0 60px;
+  font-size:12.5px;color:var(--muted);line-height:1.8}
+footer a{color:var(--accent)}
+@media(max-width:600px){ h1{font-size:23px} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <a href="index.html">ECカルテ</a>
+    <span class="nav"><a href="index.html">無料ツール</a></span>
+  </div>
+
+  <header>
+    <h1>在庫と粗利の、判断の話</h1>
+    <p>アパレルECでMD（商品計画・在庫管理）を担当しています。数字の出し方ではなく、<b>どの数字とどの数字を突き合わせるか</b>を書いています。将来の予測はしません。</p>
+  </header>
+
+  <div class="list">
+    <a class="item" href="inventory-days.html">
+      <div class="date">2026年8月7日</div>
+      <h2>在庫日数12日の商品を、追加発注してはいけない場合</h2>
+      <p>単品の在庫日数だけを見て発注すると、在庫は膨らみます。カテゴリ全体と突き合わせる理由と、判断の手順。</p>
+    </a>
+  </div>
+
+  <div class="cta">
+    <h3>自分の店の数字で確かめる</h3>
+    <p>受注CSVを読み込むと、単品とカテゴリの在庫日数を並べて出します。データはブラウザの中だけで処理され、どこにも送信されません。</p>
+    <a class="btn" href="index.html">ECカルテを使う（無料）</a>
+  </div>
+
+  <footer>
+    ECカルテ｜受注CSVから在庫の判断を出す無料ツール<br>
+    記事中の数値は、説明のために作成した架空のアパレルECのものです。実在の企業のデータではありません。<br>
+    <a href="index.html">トップへ</a>
+  </footer>
+</div>
+</body>
+</html>
